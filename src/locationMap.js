@@ -110,8 +110,11 @@ window.LocationMap = (() => {
       zoomControl: false,
       attributionControl: false,
       scrollWheelZoom: false,
-      dragging: true,
-      touchZoom: true,
+      dragging: false,
+      touchZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
     });
 
     // Capa de teselas oscuras estilo Apple Maps Dark (CartoDB Dark Matter)

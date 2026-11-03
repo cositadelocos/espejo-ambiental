@@ -781,3 +781,326 @@ body.state-information .mirror-scrim {
 .dbg-slider { width: 100%; margin-top: 4px; accent-color: var(--ios-blue); cursor: pointer; }
 .dbg-hints { font-size: 9px; color: var(--ios-tertiary); line-height: 1.6; }
 .dbg-hints kbd { background: rgba(255, 255, 255, 0.12); border-radius: 3px; padding: 1px 4px; color: var(--ios-label); }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   REDISEÑO UI/UX — BOGOTÁ AIRE (PANEL MINIMALISTA VERTICAL INSPIRADO EN IOS)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.bga-kiosk-wrapper {
+  width: 100%;
+  max-width: 440px;
+  height: 100%;
+  max-height: calc(100vh - 20px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  animation: bga-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes bga-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.bga-kiosk-panel {
+  background: #F7F8FC;
+  border-radius: 36px;
+  padding: 24px 20px 18px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3), 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  overflow-y: auto;
+  max-height: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.bga-kiosk-panel::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── A. Encabezado ─────────────────────────────────────────────────────── */
+.bga-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 2px;
+}
+
+.bga-city {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #14213D;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.bga-station-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64708A;
+}
+
+.bga-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #48C878;
+  box-shadow: 0 0 8px rgba(72, 200, 120, 0.7);
+  animation: bga-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes bga-dot-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(0.9); }
+  50%      { opacity: 1.0; transform: scale(1.2); }
+}
+
+/* ── Tarjetas Generales ───────────────────────────────────────────────── */
+.bga-card {
+  background: #FFFFFF;
+  border-radius: 28px;
+  padding: 20px 22px;
+  box-shadow: 0 4px 20px rgba(20, 33, 61, 0.04), 0 1px 3px rgba(20, 33, 61, 0.02);
+  border: 1px solid rgba(20, 33, 61, 0.04);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+}
+
+/* ── B. Tarjeta Calidad del Aire ──────────────────────────────────────── */
+.bga-card-air {
+  display: flex;
+  flex-direction: column;
+}
+
+.bga-card-subtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #64708A;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.bga-aqi-number {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-size: 52px;
+  font-weight: 800;
+  color: #14213D;
+  line-height: 1.0;
+  letter-spacing: -0.04em;
+  margin-bottom: 10px;
+}
+
+.bga-pill-wrap {
+  margin-bottom: 10px;
+}
+
+.bga-category-pill {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 99px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.bga-pollutant-row {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #64708A;
+  margin-bottom: 14px;
+}
+
+/* Barra horizontal de escala de colores */
+.bga-scale-container {
+  width: 100%;
+}
+
+.bga-scale-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 99px;
+  overflow: visible;
+  display: flex;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.bga-scale-seg {
+  flex: 1;
+  height: 10px;
+}
+
+.bga-scale-seg:first-child {
+  border-top-left-radius: 99px;
+  border-bottom-left-radius: 99px;
+}
+
+.bga-scale-seg:last-child {
+  border-top-right-radius: 99px;
+  border-bottom-right-radius: 99px;
+}
+
+.bga-seg-good      { background: #48C878; }
+.bga-seg-moderate  { background: #FFCC35; }
+.bga-seg-sensitive { background: #FFB21C; }
+.bga-seg-unhealthy { background: #F04455; }
+.bga-seg-hazardous { background: #A033B2; }
+
+.bga-scale-thumb {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2.5px solid #14213D;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2;
+}
+
+.bga-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64708A;
+  padding: 0 2px;
+}
+
+/* ── C. Tarjeta Recomendación ─────────────────────────────────────────── */
+.bga-card-rec {
+  /* Fondo y borde dinámico inline */
+}
+
+.bga-rec-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bga-shield-icon {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+
+.bga-rec-title {
+  font-size: 17.5px;
+  font-weight: 700;
+  color: #14213D;
+  margin: 0;
+}
+
+.bga-rec-body {
+  font-size: 15px;
+  font-weight: 500;
+  color: #14213D;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── D. Tarjeta Ubicación GPS ─────────────────────────────────────────── */
+.bga-card-map {
+  padding-bottom: 16px;
+}
+
+.bga-map-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #14213D;
+  margin: 0 0 10px 0;
+}
+
+.bga-map-view {
+  width: 100%;
+  height: clamp(100px, 15vh, 135px);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 33, 61, 0.08);
+  background: #0f111a;
+  margin-bottom: 10px;
+}
+
+.bga-gps-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bga-gps-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #48C878;
+  box-shadow: 0 0 6px rgba(72, 200, 120, 0.6);
+}
+
+.bga-gps-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #48C878;
+}
+
+/* ── E. Tarjeta ¿Por qué? ─────────────────────────────────────────────── */
+.bga-why-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bga-info-icon {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+
+.bga-why-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #14213D;
+  margin: 0;
+}
+
+.bga-why-body {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #64708A;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── Barra de Ciclo / Temporizador (Sutil, No es botón) ───────────────── */
+.bga-timer-track {
+  width: 100%;
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(20, 33, 61, 0.08);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.bga-timer-fill {
+  height: 100%;
+  width: 0%;
+  background: #64708A;
+  border-radius: 99px;
+  transition: width 0.05s linear;
+}

@@ -1,11 +1,15 @@
 /**
- * interface.js — Sistema de interfaz visual Apple iOS para Pantalla Vertical (Tótem SITP / Celular)
+ * interface.js — Rediseño UI/UX Pantalla de Calidad del Aire (Bogotá Aire)
  *
- * Optimizaciones clave:
- * - Cero barras de deslizamiento (No-scroll, viewport 100vh exacto)
- * - Mapa integrado Apple Maps Dark con la ubicación real del usuario / computador
- * - 3 Niveles pedagógicos concisos y legibles a distancia
- * - Estética Dynamic Island y Liquid Glassmorphism
+ * Especificación:
+ * - Minimalismo inspirado en iOS (SF Pro Display / system-ui)
+ * - Pantalla vertical adaptada a tablet o televisor
+ * - Paleta limpia: fondo #F7F8FC, tarjetas blancas #FFFFFF (radius 28px, sombra suave)
+ * - Tarjeta 1: Índice de calidad del aire (AQI gigante, categoría, PM2.5, barra de escala de colores)
+ * - Tarjeta 2: Recomendación destacada dinámica según categoría (fondo de advertencia en niveles altos)
+ * - Tarjeta 3: Tu ubicación GPS (mapa existente Leaflet con marcador GPS, sin botones ni controles)
+ * - Tarjeta 4: ¿Por qué? (explicación cotidiana del impacto en la salud según el nivel de contaminación)
+ * - Cero botones, cero menús, cero controles de navegación
  */
 
 window.Interface = (() => {
@@ -15,193 +19,253 @@ window.Interface = (() => {
   let _progressDuration = 0;
 
   /**
-   * Renderiza la interfaz vertical completa sin scroll
+   * Obtiene la configuración de diseño, recomendaciones y explicaciones dinámicas
+   * según el valor numérico del AQI y la categoría oficial.
+   */
+  function _getDesignData(record) {
+    const aqi = typeof record.aqi === 'number' ? record.aqi : 75;
+
+    let key = 'moderate';
+    let categoryName = 'Moderada';
+    let pillBg = '#FFF3D6';
+    let pillColor = '#B27B00';
+    let recBg = '#FFF8E7';
+    let recBorder = 'rgba(255, 178, 28, 0.28)';
+    let recIconColor = '#D97706';
+    let thumbPct = 30;
+
+    if (aqi <= 50) {
+      key = 'good';
+      categoryName = 'Buena';
+      pillBg = '#E6F9EE';
+      pillColor = '#279652';
+      recBg = '#F0FDF4';
+      recBorder = 'rgba(72, 200, 120, 0.28)';
+      recIconColor = '#279652';
+      thumbPct = 10;
+    } else if (aqi <= 100) {
+      key = 'moderate';
+      categoryName = 'Moderada';
+      pillBg = '#FFF3D6';
+      pillColor = '#B27B00';
+      recBg = '#FFF8E7';
+      recBorder = 'rgba(255, 178, 28, 0.28)';
+      recIconColor = '#D97706';
+      thumbPct = 30;
+    } else if (aqi <= 150) {
+      key = 'sensitive';
+      categoryName = 'Dañina para grupos sensibles';
+      pillBg = '#FFEBD4';
+      pillColor = '#D96B00';
+      recBg = '#FFF4E8';
+      recBorder = 'rgba(255, 120, 30, 0.28)';
+      recIconColor = '#D96B00';
+      thumbPct = 50;
+    } else if (aqi <= 200) {
+      key = 'unhealthy';
+      categoryName = 'Dañina';
+      pillBg = '#FFE4E6';
+      pillColor = '#D32F2F';
+      recBg = '#FEF2F2';
+      recBorder = 'rgba(240, 68, 85, 0.35)';
+      recIconColor = '#D32F2F';
+      thumbPct = 70;
+    } else if (aqi <= 300) {
+      key = 'very_unhealthy';
+      categoryName = 'Muy dañina';
+      pillBg = '#F3E8FF';
+      pillColor = '#7E22CE';
+      recBg = '#FAF5FF';
+      recBorder = 'rgba(147, 51, 234, 0.35)';
+      recIconColor = '#7E22CE';
+      thumbPct = 85;
+    } else {
+      key = 'hazardous';
+      categoryName = 'Peligrosa';
+      pillBg = '#FEE2E2';
+      pillColor = '#991B1B';
+      recBg = '#FEF2F2';
+      recBorder = 'rgba(220, 38, 38, 0.50)';
+      recIconColor = '#991B1B';
+      thumbPct = 96;
+    }
+
+    // Mensajes oficiales del JSON de referencia
+    const recommendations = {
+      good: 'Disfruta tus actividades al aire libre. La calidad del aire es favorable.',
+      moderate: 'Si puedes, evita realizar actividad física intensa al aire libre.',
+      sensitive: 'Personas sensibles deben reducir el esfuerzo físico prolongado al aire libre.',
+      unhealthy: 'Reduce las actividades al aire libre y evita el ejercicio intenso.',
+      very_unhealthy: 'Evita permanecer al aire libre. Busca espacios interiores.',
+      hazardous: 'Permanece en interiores y limita al máximo la exposición al aire exterior.',
+    };
+
+    const explanations = {
+      good: 'La concentración de contaminantes es mínima y el aire es completamente seguro para respirar libremente.',
+      moderate: 'La calidad del aire puede afectar tu salud, especialmente si tienes problemas respiratorios.',
+      sensitive: 'Partículas microscópicas en el ambiente pueden irritar ojos, garganta y pulmones en personas sensibles.',
+      unhealthy: 'La cantidad de contaminantes en el aire puede provocar tos, fatiga respiratoria o molestias al respirar.',
+      very_unhealthy: 'Los niveles de polución son críticos y pueden ocasionar daño respiratorio severo en poco tiempo.',
+      hazardous: 'Alerta sanitaria máxima: las concentraciones tóxicas en el aire representan un peligro severo e inmediato para la salud de todos.',
+    };
+
+    return {
+      key,
+      categoryName,
+      pillBg,
+      pillColor,
+      recBg,
+      recBorder,
+      recIconColor,
+      thumbPct,
+      recommendation: recommendations[key],
+      explanation: explanations[key],
+    };
+  }
+
+  /**
+   * Renderiza la pantalla vertical rediseñada
    * @param {object} record - Registro ambiental
-   * @param {number} durationMs - Duración del temporizador
-   * @param {function} onDismiss - Callback de cierre manual
+   * @param {number} durationMs - Duración del temporizador antes de volver a modo espejo
+   * @param {function} onDismiss - Callback al cumplirse el temporizador
    */
   function show(record, durationMs = 13000, onDismiss = null) {
     const overlay = document.getElementById('ui-overlay');
     if (!overlay) return;
 
-    const recs = window.RECOMMENDATIONS ?
-      window.RECOMMENDATIONS.getForCategory(record.category) : null;
-
     document.body.classList.add('state-information');
 
-    // Consultar distancia a la estación más cercana
-    const nearInfo = window.LocationMap ? window.LocationMap.getNearestStationDistance() : null;
-    const distText = nearInfo ? `A ${nearInfo.distanceKm} km de Estación ${nearInfo.station.name}` : 'Puente Aranda, Bogotá';
+    const design = _getDesignData(record);
+
+    // Nombre de la estación para el encabezado
+    let stationName = 'Estación Local';
+    if (record.station) {
+      stationName = record.station.replace(/^Estación\s*/i, '').split('·')[0].split('(')[0].trim();
+      if (!stationName.toLowerCase().startsWith('estación')) {
+        stationName = `Estación ${stationName}`;
+      }
+    }
+
+    // Formatear valor de PM2.5
+    const pmVal = record.pollutantValue || '8.2 µg/m³';
 
     overlay.innerHTML = `
-      <div class="ios-vertical-kiosk" id="ios-kiosk" role="dialog" aria-modal="true">
+      <div class="bga-kiosk-wrapper" role="region" aria-label="Panel de Calidad del Aire de Bogotá">
+        <div class="bga-kiosk-panel">
 
-        <!-- ── Dynamic Island Pill (Top) ─────────────────────────────── -->
-        <header class="ios-island">
-          <div class="island-left">
-            <span class="island-live-dot ${record.isLive ? 'gps-live' : ''}"></span>
-            <span class="island-station">${record.station.split('·')[0]}</span>
-          </div>
-          <div class="island-right">
-            <span class="island-badge ${record.isLive ? 'live-gps-badge' : ''}">${record.isLive ? '📍 GPS EN VIVO' : 'DEMO'}</span>
-            <span class="island-time">${record.timestamp}</span>
-          </div>
-        </header>
-
-        <!-- ── Contenedor Kiosk Vertical Sin Scroll ──────────────────── -->
-        <main class="ios-sheet-vertical">
-
-          <!-- 1. Hero Widget AQI (Apple Weather) -->
-          <section class="ios-hero-compact" style="--aqi-color: ${record.color}; --aqi-glow: ${record.colorGlow};">
-            <div class="hero-header-compact">
-              <div class="hero-left-meta">
-                <span class="hero-tag">CALIDAD DEL AIRE · ${record.location.toUpperCase()}</span>
-                <span class="hero-status-pill" style="background:${record.colorBg}; border-color:${record.colorBorder}; color:${record.color};">
-                  ${record.category}
-                </span>
-              </div>
-              <div class="hero-pollutant-badge">
-                <span class="pollutant-sym">${record.pollutant}</span>
-                <span class="pollutant-num">${record.pollutantValue}</span>
-              </div>
+          <!-- ── A. Encabezado ─────────────────────────────────────────── -->
+          <header class="bga-header">
+            <h1 class="bga-city">Bogotá</h1>
+            <div class="bga-station-status">
+              <span class="bga-status-dot"></span>
+              <span class="bga-station-label">${stationName}</span>
             </div>
+          </header>
 
-            <div class="hero-metric-row-compact">
-              <div class="hero-aqi-value-compact">${record.aqi}</div>
-              <div class="hero-context-compact">
-                <div class="hero-unit-label">Índice ${record.isLive ? 'AQI Real' : 'IBOCA / AQI'}</div>
-                <div class="hero-who-sub">${record.whoComparison}</div>
-              </div>
+          <!-- ── B. Calidad del Aire ───────────────────────────────────── -->
+          <section class="bga-card bga-card-air">
+            <span class="bga-card-subtitle">Índice de calidad del aire</span>
+            <div class="bga-aqi-number">${record.aqi}</div>
+            <div class="bga-pill-wrap">
+              <span class="bga-category-pill" style="background:${design.pillBg}; color:${design.pillColor};">
+                ${design.categoryName}
+              </span>
             </div>
-
-            <!-- Barra de gradiente continuo estilo Apple Weather -->
-            <div class="ios-aqi-slider-compact">
-              <div class="ios-aqi-slider-track">
-                <div class="ios-aqi-slider-thumb" style="left: ${record.barPercentage}%;"></div>
+            <div class="bga-pollutant-row">
+              ${record.pollutant || 'PM2.5'} · ${pmVal}
+            </div>
+            <div class="bga-scale-container">
+              <div class="bga-scale-bar">
+                <span class="bga-scale-seg bga-seg-good" title="Buena"></span>
+                <span class="bga-scale-seg bga-seg-moderate" title="Moderada"></span>
+                <span class="bga-scale-seg bga-seg-sensitive" title="Sensible"></span>
+                <span class="bga-scale-seg bga-seg-unhealthy" title="Dañina"></span>
+                <span class="bga-scale-seg bga-seg-hazardous" title="Peligrosa"></span>
+                <div class="bga-scale-thumb" style="left: ${design.thumbPct}%;"></div>
               </div>
-              <div class="ios-aqi-slider-labels">
+              <div class="bga-scale-labels">
                 <span>Buena</span>
-                <span>50</span>
                 <span>Moderada</span>
-                <span>150</span>
                 <span>Peligrosa</span>
               </div>
             </div>
           </section>
 
-          <!-- 2. Sección dividida: Mapa GPS y Diagnóstico -->
-          <div class="ios-split-grid">
+          <!-- ── C. Recomendación ──────────────────────────────────────── -->
+          <section class="bga-card bga-card-rec" style="background:${design.recBg}; border:1px solid ${design.recBorder};">
+            <div class="bga-rec-header">
+              <svg class="bga-shield-icon" viewBox="0 0 24 24" fill="none" stroke="${design.recIconColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <h2 class="bga-rec-title">Recomendación</h2>
+            </div>
+            <p class="bga-rec-body">
+              ${design.recommendation}
+            </p>
+          </section>
 
-            <!-- Tarjeta Mapa Apple Maps Dark -->
-            <article class="ios-card-widget ios-map-card">
-              <div class="widget-mini-header">
-                <div class="mini-icon-title">
-                  <span class="map-pulse-dot"></span>
-                  <span class="widget-mini-title">${record.isLive ? 'Tu Ubicación GPS Real' : 'Ubicación · Puente Aranda'}</span>
-                </div>
-                <span class="map-dist-pill">${record.isLive ? '🟢 GPS Activo' : distText}</span>
-              </div>
-              <!-- Contenedor del Mapa Leaflet -->
-              <div id="ios-map-container" class="ios-map-view"></div>
-            </article>
+          <!-- ── D. Ubicación GPS ──────────────────────────────────────── -->
+          <section class="bga-card bga-card-map">
+            <h2 class="bga-map-title">Tu ubicación GPS</h2>
+            <div id="ios-map-container" class="bga-map-view"></div>
+            <div class="bga-gps-footer">
+              <span class="bga-gps-dot"></span>
+              <span class="bga-gps-text">GPS activo</span>
+            </div>
+          </section>
 
-            <!-- Tarjeta Diagnóstico e Impacto Fisiológico -->
-            <article class="ios-card-widget ios-health-card">
-              <div class="widget-mini-header">
-                <div class="mini-icon-title">
-                  <svg class="mini-svg" viewBox="0 0 24 24" fill="none" stroke="${record.color}" stroke-width="2">
-                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                  </svg>
-                  <span class="widget-mini-title">Impacto en tu Salud</span>
-                </div>
-              </div>
-              <p class="health-lead">${recs ? recs.diagnostico.titulo : 'Diagnóstico atmosférico'}</p>
-              <p class="health-body">${recs ? recs.impactoSalud.texto : record.description}</p>
-            </article>
+          <!-- ── E. ¿Por qué? ──────────────────────────────────────────── -->
+          <section class="bga-card bga-card-why">
+            <div class="bga-why-header">
+              <svg class="bga-info-icon" viewBox="0 0 24 24" fill="none" stroke="#64708A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <h2 class="bga-why-title">¿Por qué?</h2>
+            </div>
+            <p class="bga-why-body">
+              ${design.explanation}
+            </p>
+          </section>
 
+          <!-- Indicador sutil de ciclo / temporizador (sin ser un botón) -->
+          <div class="bga-timer-track">
+            <div class="bga-timer-fill" id="bga-timer-fill"></div>
           </div>
 
-          <!-- 3. Acciones Recomendadas en Paradero SITP / Vía Pública -->
-          <article class="ios-card-widget ios-actions-card" style="border-color:${record.colorBorder};">
-            <div class="widget-mini-header">
-              <div class="mini-icon-title">
-                <svg class="mini-svg" viewBox="0 0 24 24" fill="none" stroke="${record.color}" stroke-width="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-                <span class="widget-mini-title" style="color:${record.color};">¿Qué hacer ahora en este lugar?</span>
-              </div>
-            </div>
-            <ul class="action-items-compact">
-              ${recs && recs.acciones ? recs.acciones.items.slice(0, 2).map(item => `
-                <li>
-                  <span class="action-bullet" style="background:${record.color}"></span>
-                  <span>${item}</span>
-                </li>
-              `).join('') : `<li>Sigue las pautas preventivas locales.</li>`}
-            </ul>
-          </article>
-
-          <!-- 4. Footer Compacto con Barra de Temporizador y Selector -->
-          <footer class="ios-kiosk-footer">
-            <div class="kiosk-footer-row">
-              <button class="ios-btn-scenario-toggle" id="btn-toggle-scenario" type="button" title="Alternar entre ubicación GPS real y escenarios demo">
-                <span>${record.isLive ? '📍 Ubicación GPS' : '🏙️ Escenario Demo'}</span>
-                <span style="opacity: 0.6; font-size: 9px;">(Cambiar)</span>
-              </button>
-              <button class="ios-btn-dismiss-compact" id="ios-btn-dismiss" type="button">
-                <span>Continuar</span>
-                <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
-                  <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-              </button>
-            </div>
-            <div class="ios-timer-bar">
-              <div class="ios-timer-progress" id="ios-timer-progress"></div>
-            </div>
-          </footer>
-
-        </main>
+        </div>
       </div>
     `;
 
     overlay.classList.add('visible');
 
-    // Inicializar mapa Apple Maps Dark Mode con la ubicación del usuario
+    // Inicializar mapa original conservando proveedor y marcador GPS
     if (window.LocationMap) {
-      window.LocationMap.init('ios-map-container', record.color);
+      window.LocationMap.init('ios-map-container', record.color || '#FFCC35');
     }
 
-    // Botón de descarte manual
-    const btnDismiss = document.getElementById('ios-btn-dismiss');
-    if (btnDismiss && onDismiss) {
-      btnDismiss.addEventListener('click', onDismiss);
-    }
-
-    // Botón de alternancia de escenario / modo GPS
-    const btnToggle = document.getElementById('btn-toggle-scenario');
-    if (btnToggle) {
-      btnToggle.addEventListener('click', () => {
-        window.App?.nextScenario();
-      });
-    }
-
-    _startTimerProgress(durationMs);
+    _startTimerProgress(durationMs, onDismiss);
   }
 
-  function _startTimerProgress(durationMs) {
+  function _startTimerProgress(durationMs, onFinish) {
     if (_progressInterval) clearInterval(_progressInterval);
-    const bar = document.getElementById('ios-timer-progress');
-    if (!bar) return;
+    const fill = document.getElementById('bga-timer-fill');
 
     _progressStartTime = performance.now();
-    _progressDuration = durationMs;
+    _progressDuration  = durationMs;
 
     _progressInterval = setInterval(() => {
       const elapsed = performance.now() - _progressStartTime;
       const pct = Math.min(100, (elapsed / _progressDuration) * 100);
-      if (bar) bar.style.width = `${pct}%`;
+      if (fill) fill.style.width = `${pct}%`;
+
       if (elapsed >= _progressDuration) {
         clearInterval(_progressInterval);
+        _progressInterval = null;
+        if (onFinish) onFinish();
       }
     }, 50);
   }
@@ -219,7 +283,7 @@ window.Interface = (() => {
     overlay.classList.remove('visible');
     setTimeout(() => {
       overlay.innerHTML = '';
-    }, 600);
+    }, 450);
   }
 
   return {
