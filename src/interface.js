@@ -15,8 +15,9 @@
 window.Interface = (() => {
 
   let _progressInterval = null;
+  let _clockInterval    = null;
   let _progressStartTime = 0;
-  let _progressDuration = 0;
+  let _progressDuration  = 0;
 
   /**
    * Obtiene la configuración de diseño, recomendaciones y explicaciones dinámicas
@@ -147,7 +148,16 @@ window.Interface = (() => {
     }
 
     // Formatear valor de PM2.5
-    const pmVal = record.pollutantValue || '8.2 µg/m³';
+    const pmVal    = record.pollutantValue || '8.2 µg/m³';
+    const pmNumber = typeof record.pollutantValue === 'number'
+      ? `${record.pollutantValue} µg/m³`
+      : (record.pollutantValue || '8.2 µg/m³');
+
+    // Hora inicial formateada
+    const _fmt = () => new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    // Segundos restantes inicial
+    const totalSec = Math.round(durationMs / 1000);
 
     overlay.innerHTML = `
       <div class="bga-kiosk-wrapper" role="region" aria-label="Panel de Calidad del Aire de Bogotá">
@@ -155,10 +165,15 @@ window.Interface = (() => {
 
           <!-- ── A. Encabezado ─────────────────────────────────────────── -->
           <header class="bga-header">
-            <h1 class="bga-city">Bogotá</h1>
-            <div class="bga-station-status">
-              <span class="bga-status-dot"></span>
-              <span class="bga-station-label">${stationName}</span>
+            <div class="bga-header-left">
+              <h1 class="bga-city">Bogotá</h1>
+              <div class="bga-station-status">
+                <span class="bga-status-dot"></span>
+                <span class="bga-station-label">${stationName}</span>
+              </div>
+            </div>
+            <div class="bga-header-right">
+              <div class="bga-clock" id="bga-clock">${_fmt()}</div>
             </div>
           </header>
 
@@ -172,7 +187,7 @@ window.Interface = (() => {
               </span>
             </div>
             <div class="bga-pollutant-row">
-              ${record.pollutant || 'PM2.5'} · ${pmVal}
+              ${record.pollutant || 'PM2.5'} · ${pmNumber}
             </div>
             <div class="bga-scale-container">
               <div class="bga-scale-bar">
@@ -187,6 +202,23 @@ window.Interface = (() => {
                 <span>Buena</span>
                 <span>Moderada</span>
                 <span>Peligrosa</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── B2. Explicación PM2.5 ─────────────────────────────────── -->
+          <section class="bga-card bga-card-pm25">
+            <div class="bga-pm25-row">
+              <div class="bga-pm25-block">
+                <span class="bga-pm25-term">PM2.5</span>
+                <span class="bga-pm25-desc">Partículas microscópicas contaminantes que pueden entrar profundamente en los pulmones.</span>
+              </div>
+            </div>
+            <div class="bga-pm25-divider"></div>
+            <div class="bga-pm25-row">
+              <div class="bga-pm25-block">
+                <span class="bga-pm25-value">${pmNumber}</span>
+                <span class="bga-pm25-desc">Cantidad de esas partículas presentes en cada metro cúbico de aire.</span>
               </div>
             </div>
           </section>
@@ -231,9 +263,12 @@ window.Interface = (() => {
             </p>
           </section>
 
-          <!-- Indicador sutil de ciclo / temporizador (sin ser un botón) -->
-          <div class="bga-timer-track">
-            <div class="bga-timer-fill" id="bga-timer-fill"></div>
+          <!-- ── Temporizador + countdown ──────────────────────────────── -->
+          <div class="bga-timer-section">
+            <span class="bga-countdown-label" id="bga-countdown-label">Esta información se cerrará en <strong id="bga-countdown-sec">${totalSec}</strong>s</span>
+            <div class="bga-timer-track">
+              <div class="bga-timer-fill" id="bga-timer-fill"></div>
+            </div>
           </div>
 
         </div>
@@ -252,28 +287,50 @@ window.Interface = (() => {
 
   function _startTimerProgress(durationMs, onFinish) {
     if (_progressInterval) clearInterval(_progressInterval);
-    const fill = document.getElementById('bga-timer-fill');
+    if (_clockInterval)    clearInterval(_clockInterval);
+
+    const fill        = document.getElementById('bga-timer-fill');
+    const clockEl     = document.getElementById('bga-clock');
+    const countdownEl = document.getElementById('bga-countdown-sec');
 
     _progressStartTime = performance.now();
     _progressDuration  = durationMs;
+    const totalSec     = Math.round(durationMs / 1000);
+
+    // Reloj en tiempo real (actualiza cada segundo)
+    _clockInterval = setInterval(() => {
+      if (clockEl) {
+        clockEl.textContent = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
+    }, 1000);
 
     _progressInterval = setInterval(() => {
       const elapsed = performance.now() - _progressStartTime;
       const pct = Math.min(100, (elapsed / _progressDuration) * 100);
       if (fill) fill.style.width = `${pct}%`;
 
+      // Actualizar segundos restantes
+      const remaining = Math.max(0, totalSec - Math.floor(elapsed / 1000));
+      if (countdownEl) countdownEl.textContent = remaining;
+
       if (elapsed >= _progressDuration) {
         clearInterval(_progressInterval);
+        clearInterval(_clockInterval);
         _progressInterval = null;
+        _clockInterval    = null;
         if (onFinish) onFinish();
       }
-    }, 50);
+    }, 250);
   }
 
   function hide() {
     if (_progressInterval) {
       clearInterval(_progressInterval);
       _progressInterval = null;
+    }
+    if (_clockInterval) {
+      clearInterval(_clockInterval);
+      _clockInterval = null;
     }
 
     document.body.classList.remove('state-information');

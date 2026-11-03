@@ -835,6 +835,19 @@ body.state-information .mirror-scrim {
   padding: 0 4px 2px;
 }
 
+.bga-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bga-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
 .bga-city {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
   font-size: 28px;
@@ -1094,7 +1107,7 @@ body.state-information .mirror-scrim {
   border-radius: 99px;
   background: rgba(20, 33, 61, 0.08);
   overflow: hidden;
-  margin-top: 2px;
+  margin-top: 6px;
 }
 
 .bga-timer-fill {
@@ -1102,5 +1115,94 @@ body.state-information .mirror-scrim {
   width: 0%;
   background: #64708A;
   border-radius: 99px;
-  transition: width 0.05s linear;
+  transition: width 0.25s linear;
+}
+
+/* ── Reloj ──────────────────────────────────────────────────────────────── */
+.bga-clock {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #14213D;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tarjeta PM2.5 ──────────────────────────────────────────────────────── */
+.bga-card-pm25 {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bga-pm25-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bga-pm25-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bga-pm25-term {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #14213D;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bga-pm25-value {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #14213D;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bga-pm25-desc {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: #64708A;
+  line-height: 1.5;
+}
+
+.bga-pm25-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(20, 33, 61, 0.08);
+  border-radius: 99px;
+}
+
+/* ── Sección temporizador + countdown ──────────────────────────────────── */
+.bga-timer-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  margin-top: 4px;
+}
+
+.bga-countdown-label {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #64708A;
+  opacity: 0.7;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.bga-countdown-label strong {
+  font-weight: 700;
+  color: #14213D;
+  font-variant-numeric: tabular-nums;
 }

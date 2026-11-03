@@ -63,9 +63,9 @@ window.CONFIG = {
 
   // ── Temporizadores (ms) ───────────────────────────────────────────────
   timings: {
-    detectionHold:       3000, // 3 segundos de interacción con las partículas antes de revelar
+    detectionHold:       5000, // 5 segundos de interacción con las partículas antes de revelar
     disperseDuration:    1400,
-    infoDisplayDuration: 13000,
+    infoDisplayDuration: 22000,
     resetDuration:       2200,
     resetHoldDelay:      3500,
   },
