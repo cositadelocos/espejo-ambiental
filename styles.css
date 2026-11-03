@@ -1129,56 +1129,61 @@ body.state-information .mirror-scrim {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Tarjeta PM2.5 ──────────────────────────────────────────────────────── */
+/* ── Tarjeta PM2.5 — compacta ────────────────────────────────────────────── */
 .bga-card-pm25 {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 12px 18px !important;
 }
 
 .bga-pm25-row {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .bga-pm25-block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
 }
 
 .bga-pm25-term {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: #14213D;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .bga-pm25-value {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
   color: #14213D;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
 .bga-pm25-desc {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 400;
   color: #64708A;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .bga-pm25-divider {
-  width: 100%;
-  height: 1px;
+  width: 1px;
+  height: auto;
+  align-self: stretch;
   background: rgba(20, 33, 61, 0.08);
   border-radius: 99px;
+  margin: 0 14px;
 }
 
 /* ── Sección temporizador + countdown ──────────────────────────────────── */
