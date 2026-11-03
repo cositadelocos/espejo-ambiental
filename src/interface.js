@@ -39,11 +39,11 @@ window.Interface = (() => {
         <!-- ── Dynamic Island Pill (Top) ─────────────────────────────── -->
         <header class="ios-island">
           <div class="island-left">
-            <span class="island-live-dot"></span>
+            <span class="island-live-dot ${record.isLive ? 'gps-live' : ''}"></span>
             <span class="island-station">${record.station.split('·')[0]}</span>
           </div>
           <div class="island-right">
-            <span class="island-badge">EN VIVO</span>
+            <span class="island-badge ${record.isLive ? 'live-gps-badge' : ''}">${record.isLive ? '📍 GPS EN VIVO' : 'DEMO'}</span>
             <span class="island-time">${record.timestamp}</span>
           </div>
         </header>
@@ -55,7 +55,7 @@ window.Interface = (() => {
           <section class="ios-hero-compact" style="--aqi-color: ${record.color}; --aqi-glow: ${record.colorGlow};">
             <div class="hero-header-compact">
               <div class="hero-left-meta">
-                <span class="hero-tag">CALIDAD DEL AIRE · PUENTE ARANDA</span>
+                <span class="hero-tag">CALIDAD DEL AIRE · ${record.location.toUpperCase()}</span>
                 <span class="hero-status-pill" style="background:${record.colorBg}; border-color:${record.colorBorder}; color:${record.color};">
                   ${record.category}
                 </span>
@@ -69,7 +69,7 @@ window.Interface = (() => {
             <div class="hero-metric-row-compact">
               <div class="hero-aqi-value-compact">${record.aqi}</div>
               <div class="hero-context-compact">
-                <div class="hero-unit-label">Índice IBOCA / AQI</div>
+                <div class="hero-unit-label">Índice ${record.isLive ? 'AQI Real' : 'IBOCA / AQI'}</div>
                 <div class="hero-who-sub">${record.whoComparison}</div>
               </div>
             </div>
@@ -97,9 +97,9 @@ window.Interface = (() => {
               <div class="widget-mini-header">
                 <div class="mini-icon-title">
                   <span class="map-pulse-dot"></span>
-                  <span class="widget-mini-title">Tu Ubicación (GPS / Casa)</span>
+                  <span class="widget-mini-title">${record.isLive ? 'Tu Ubicación GPS Real' : 'Ubicación · Puente Aranda'}</span>
                 </div>
-                <span class="map-dist-pill">${distText}</span>
+                <span class="map-dist-pill">${record.isLive ? '🟢 GPS Activo' : distText}</span>
               </div>
               <!-- Contenedor del Mapa Leaflet -->
               <div id="ios-map-container" class="ios-map-view"></div>
@@ -128,7 +128,7 @@ window.Interface = (() => {
                 <svg class="mini-svg" viewBox="0 0 24 24" fill="none" stroke="${record.color}" stroke-width="2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
-                <span class="widget-mini-title" style="color:${record.color};">¿Qué hacer ahora en la calle?</span>
+                <span class="widget-mini-title" style="color:${record.color};">¿Qué hacer ahora en este lugar?</span>
               </div>
             </div>
             <ul class="action-items-compact">
@@ -141,10 +141,13 @@ window.Interface = (() => {
             </ul>
           </article>
 
-          <!-- 4. Footer Compacto con Barra de Temporizador -->
+          <!-- 4. Footer Compacto con Barra de Temporizador y Selector -->
           <footer class="ios-kiosk-footer">
             <div class="kiosk-footer-row">
-              <span class="footer-rmcab-tag">📍 RMCAB Bogotá · Estación Puente Aranda</span>
+              <button class="ios-btn-scenario-toggle" id="btn-toggle-scenario" type="button" title="Alternar entre ubicación GPS real y escenarios demo">
+                <span>${record.isLive ? '📍 Ubicación GPS' : '🏙️ Escenario Demo'}</span>
+                <span style="opacity: 0.6; font-size: 9px;">(Cambiar)</span>
+              </button>
               <button class="ios-btn-dismiss-compact" id="ios-btn-dismiss" type="button">
                 <span>Continuar</span>
                 <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
@@ -172,6 +175,14 @@ window.Interface = (() => {
     const btnDismiss = document.getElementById('ios-btn-dismiss');
     if (btnDismiss && onDismiss) {
       btnDismiss.addEventListener('click', onDismiss);
+    }
+
+    // Botón de alternancia de escenario / modo GPS
+    const btnToggle = document.getElementById('btn-toggle-scenario');
+    if (btnToggle) {
+      btnToggle.addEventListener('click', () => {
+        window.App?.nextScenario();
+      });
     }
 
     _startTimerProgress(durationMs);

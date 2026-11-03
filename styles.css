@@ -267,6 +267,18 @@ body.state-information .mirror-scrim {
   border-radius: var(--radius-pill);
 }
 
+.island-badge.live-gps-badge {
+  background: rgba(10, 132, 255, 0.22);
+  color: #0A84FF;
+  border-color: rgba(10, 132, 255, 0.45);
+  box-shadow: 0 0 10px rgba(10, 132, 255, 0.3);
+}
+
+.island-live-dot.gps-live {
+  background: #0A84FF;
+  box-shadow: 0 0 8px #0A84FF;
+}
+
 .island-time {
   font-size: 11px;
   font-weight: 500;
@@ -631,6 +643,31 @@ body.state-information .mirror-scrim {
 .footer-rmcab-tag {
   font-size: 10px;
   color: var(--ios-tertiary);
+}
+
+.ios-btn-scenario-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(10, 132, 255, 0.16);
+  border: 1px solid rgba(10, 132, 255, 0.35);
+  color: #5AC8FA;
+  font-family: var(--font-apple);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ios-btn-scenario-toggle:hover {
+  background: rgba(10, 132, 255, 0.28);
+  border-color: rgba(10, 132, 255, 0.55);
+}
+
+.ios-btn-scenario-toggle:active {
+  transform: scale(0.96);
 }
 
 .ios-btn-dismiss-compact {

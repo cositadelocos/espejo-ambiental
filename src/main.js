@@ -16,13 +16,32 @@ window.App = {
   debugPanel:       null,
   scenarioIndex:    0,
   currentScenario:  null,
+  liveScenario:     null,
+  isLiveMode:       true,
 
-  /** Avanza al siguiente escenario DEMO */
+  /** Asigna el registro en tiempo real obtenido por GPS */
+  setLiveRecord(record) {
+    this.liveScenario = record;
+    if (this.isLiveMode) {
+      this.currentScenario = record;
+      if (this.stateMachine?.is('INFORMATION')) {
+        window.Interface?.show(
+          this.currentScenario,
+          CONFIG.timings.infoDisplayDuration,
+          () => this.stateMachine.transition('RESET')
+        );
+      }
+    }
+  },
+
+  /** Alterna entre la ubicación GPS real y los escenarios demostrativos */
   nextScenario() {
-    const total = window.ENVIRONMENTAL_DATA ? window.ENVIRONMENTAL_DATA.SCENARIOS.length : 1;
+    const demos = window.ENVIRONMENTAL_DATA ? window.ENVIRONMENTAL_DATA.SCENARIOS : [];
+    const allScenarios = this.liveScenario ? [this.liveScenario, ...demos] : demos;
+    const total = allScenarios.length || 1;
     this.scenarioIndex = (this.scenarioIndex + 1) % total;
-    this.currentScenario = window.ENVIRONMENTAL_DATA ?
-      window.ENVIRONMENTAL_DATA.getScenarioByIndex(this.scenarioIndex) : null;
+    this.currentScenario = allScenarios[this.scenarioIndex];
+    this.isLiveMode = (this.currentScenario === this.liveScenario);
 
     // Si la información está visible, actualizarla en vivo
     if (this.stateMachine?.is('INFORMATION')) {
@@ -320,10 +339,11 @@ const sketch = (p) => {
       p.textFont('system-ui, -apple-system, sans-serif');
       p.text('✦ Presencia detectada · Agitando partículas suspendidas', cx, cy - 14);
 
+      const locTarget = App.currentScenario?.location || 'tu ubicación';
       p.fill(220, 235, 255, 210);
       p.textSize(12);
       p.textStyle(p.NORMAL);
-      p.text(`Analizando calidad del aire en Puente Aranda… (${remainingSec}s)`, cx, cy + 6);
+      p.text(`Analizando calidad del aire en ${locTarget}… (${remainingSec}s)`, cx, cy + 6);
 
       // Barra de progreso interactiva
       const barW = pillW - 60;

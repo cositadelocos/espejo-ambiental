@@ -54,18 +54,29 @@ window.LocationMap = (() => {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
         _userCoords = {
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
+          lat,
+          lon,
           label: 'Tu ubicación actual detectada',
           accuracy: Math.round(pos.coords.accuracy),
           isLive: true,
         };
-        console.info('[LocationMap] Ubicación GPS obtenida:', _userCoords.lat, _userCoords.lon);
+        console.info('[LocationMap] Ubicación GPS obtenida:', lat, lon);
         if (_mapInstance) {
           _updateMapCenter();
         }
+
+        // Consultar calidad de aire en tiempo real para esta ubicación exacta
+        if (window.ENVIRONMENTAL_DATA?.fetchLiveEnvironmentalData) {
+          const liveData = await window.ENVIRONMENTAL_DATA.fetchLiveEnvironmentalData(lat, lon);
+          if (liveData && window.App?.setLiveRecord) {
+            window.App.setLiveRecord(liveData);
+          }
+        }
+
         if (onLocationFound) onLocationFound(_userCoords);
       },
       (err) => {
@@ -74,8 +85,8 @@ window.LocationMap = (() => {
       },
       {
         enableHighAccuracy: true,
-        timeout: 6000,
-        maximumAge: 60000,
+        timeout: 10000,
+        maximumAge: 30000,
       }
     );
   }
@@ -184,6 +195,14 @@ window.LocationMap = (() => {
         nearest = st;
       }
     });
+
+    if (minKm > 25) {
+      return {
+        station: { name: _userCoords.label || 'Monitoreo Local' },
+        distanceKm: '0.0',
+        isLocalSatellite: true,
+      };
+    }
 
     return {
       station: nearest,

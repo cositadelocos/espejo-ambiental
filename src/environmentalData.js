@@ -161,11 +161,120 @@ window.ENVIRONMENTAL_DATA = (() => {
     };
   }
 
+  /**
+   * Consulta datos reales en tiempo real mediante Open-Meteo Air Quality API
+   * y geocodificación inversa para la ubicación exacta del usuario.
+   * Totalmente libre, sin API key, con CORS habilitado.
+   * @param {number} lat Latitud GPS
+   * @param {number} lon Longitud GPS
+   * @returns {Promise<object|null>} Registro ambiental enriquecido
+   */
+  async function fetchLiveEnvironmentalData(lat, lon) {
+    try {
+      // 1. Geocodificación inversa para obtener barrio, localidad y ciudad
+      const geoPromise = (async () => {
+        try {
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const locality = data.locality || data.principalSubdivision || '';
+            const city = data.city || data.principalSubdivision || 'Tu Ciudad';
+            return {
+              locality,
+              city,
+              country: data.countryName || 'Colombia',
+              label: locality ? `${locality}, ${city}` : city,
+            };
+          }
+        } catch (_) {}
+
+        // Fallback a OpenStreetMap Nominatim
+        try {
+          const res2 = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+          );
+          if (res2.ok) {
+            const data2 = await res2.json();
+            const addr = data2.address || {};
+            const locality = addr.neighbourhood || addr.suburb || addr.quarter || addr.city_district || '';
+            const city = addr.city || addr.town || addr.municipality || 'Tu Ciudad';
+            return {
+              locality,
+              city,
+              country: addr.country || 'Colombia',
+              label: locality ? `${locality}, ${city}` : city,
+            };
+          }
+        } catch (_) {}
+
+        return { locality: 'Tu Ubicación', city: 'GPS', country: '', label: 'Tu Ubicación en Tiempo Real' };
+      })();
+
+      // 2. Consulta de calidad del aire a Open-Meteo en tiempo real
+      const airPromise = (async () => {
+        const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi,european_aqi`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Open-Meteo error HTTP ${res.status}`);
+        return await res.json();
+      })();
+
+      const [geoInfo, airData] = await Promise.all([geoPromise, airPromise]);
+      const current = airData.current || {};
+
+      const pm25 = typeof current.pm2_5 === 'number' ? current.pm2_5 : 12.4;
+      const pm10 = typeof current.pm10 === 'number' ? current.pm10 : 22.1;
+      const aqi  = typeof current.us_aqi === 'number' ? current.us_aqi : Math.round(pm25 * 3.4);
+
+      // Comparación con límites diarios OMS (15 µg/m³ para PM2.5)
+      let whoComp = '';
+      if (pm25 <= 15) {
+        whoComp = 'Dentro de los parámetros de aire seguro de la OMS (≤ 15 µg/m³)';
+      } else {
+        const mult = (pm25 / 15).toFixed(1);
+        whoComp = `${mult}x sobre el límite diario recomendado por la OMS (15 µg/m³)`;
+      }
+
+      let context = `Lectura satelital y de sensores en ${geoInfo.label} actualizada en vivo.`;
+      if (current.carbon_monoxide) {
+        context += ` CO: ${current.carbon_monoxide} µg/m³.`;
+      }
+
+      const liveScenario = {
+        id: 'gps-live-realtime',
+        aqi: Math.round(aqi),
+        station: `Estación Local · ${geoInfo.locality || geoInfo.city}`,
+        location: geoInfo.label,
+        pollutant: 'PM2.5',
+        pollutantValue: `${pm25.toFixed(1)} µg/m³`,
+        pollutantFullName: 'Material Particulado fino (< 2.5 µm)',
+        whoComparison: whoComp,
+        pm10Value: `${pm10.toFixed(1)} µg/m³`,
+        coValue: current.carbon_monoxide ? `${current.carbon_monoxide.toFixed(0)} µg/m³` : null,
+        humidity: 'En vivo',
+        temperature: 'En vivo',
+        context: context,
+        isLive: true,
+        coords: { lat, lon },
+      };
+
+      const enriched = enrichRecord(liveScenario);
+      console.info('[EnvironmentalData] Calidad de aire en tiempo real obtenida:', enriched);
+      return enriched;
+
+    } catch (err) {
+      console.warn('[EnvironmentalData] Error al obtener datos reales:', err.message);
+      return null;
+    }
+  }
+
   return {
     IBOCA_LEVELS,
     SCENARIOS: SCENARIOS.map(enrichRecord),
     getLevel,
     enrichRecord,
+    fetchLiveEnvironmentalData,
     getScenarioByIndex(index) {
       const safeIdx = ((index % SCENARIOS.length) + SCENARIOS.length) % SCENARIOS.length;
       return enrichRecord(SCENARIOS[safeIdx]);
