@@ -23,10 +23,12 @@ class PresenceDetector {
   constructor(opts = {}) {
     this.onPresenceChange = opts.onPresenceChange ?? (() => {});
     this.onStatusChange   = opts.onStatusChange   ?? (() => {});
+    this.onPositionChange = opts.onPositionChange ?? (() => {});
 
     this.simulationMode = true;   // activo hasta que la cámara esté lista
     this.isRunning      = false;
     this.isReady        = false;
+    this.lastFacePos    = null;
 
     this._detected      = false;
     this._debounceIn    = 0;
@@ -146,7 +148,22 @@ class PresenceDetector {
             this._video,
             performance.now()
           );
-          this._processDetection(result.detections?.length > 0);
+          const hasFace = result.detections && result.detections.length > 0;
+          let facePos = null;
+          if (hasFace) {
+            const bbox = result.detections[0].boundingBox;
+            const vw = this._video.videoWidth  || 640;
+            const vh = this._video.videoHeight || 480;
+            // Eje horizontal invertido para alinearse con el efecto espejo CSS (scaleX(-1))
+            const normX = 1 - (bbox.originX + bbox.width / 2) / vw;
+            const normY = (bbox.originY + bbox.height / 2) / vh;
+            facePos = {
+              normX: Math.max(0.05, Math.min(0.95, normX)),
+              normY: Math.max(0.05, Math.min(0.95, normY)),
+            };
+            this.lastFacePos = facePos;
+          }
+          this._processDetection(hasFace, facePos);
         } catch (_) {
           // Ignorar errores de frame individual (pérdidas de datos de video)
         }
@@ -159,20 +176,22 @@ class PresenceDetector {
   }
 
   /** Aplica debounce a la señal de detección para evitar parpadeos */
-  _processDetection(hasFace) {
+  _processDetection(hasFace, facePos) {
     if (hasFace) {
       this._debounceIn++;
       this._debounceOut = 0;
       if (this._debounceIn >= this.DEBOUNCE_IN && !this._detected) {
         this._detected = true;
-        this.onPresenceChange(true);
+        this.onPresenceChange(true, facePos);
+      } else if (this._detected && facePos) {
+        this.onPositionChange(facePos);
       }
     } else {
       this._debounceOut++;
       this._debounceIn = 0;
       if (this._debounceOut >= this.DEBOUNCE_OUT && this._detected) {
         this._detected = false;
-        this.onPresenceChange(false);
+        this.onPresenceChange(false, null);
       }
     }
   }
@@ -180,13 +199,19 @@ class PresenceDetector {
   // ── API pública ────────────────────────────────────────────────────────
 
   /**
-   * Simula presencia manualmente (para pruebas sin cámara).
+   * Simula presencia manualmente (para pruebas sin cámara o teclado).
    * Funciona siempre, incluso cuando la cámara está activa.
    */
-  simulatePresence(active) {
+  simulatePresence(active, normX = 0.5, normY = 0.45) {
     const was = this._detected;
     this._detected = active;
-    if (was !== active) this.onPresenceChange(active);
+    const pos = active ? { normX, normY } : null;
+    this.lastFacePos = pos;
+    if (was !== active) {
+      this.onPresenceChange(active, pos);
+    } else if (active && pos) {
+      this.onPositionChange(pos);
+    }
   }
 
   /** Detiene la cámara y libera los recursos */

@@ -23,11 +23,12 @@ window.AudioEffects = (() => {
   }
 
   /**
-   * Sonido y vibración cuando se detecta a la persona llegando
+   * Sonido y vibración cuando se detecta a la persona llegando.
+   * Genera una corriente de aire y resonancia que se acumula durante los 3 segundos.
    */
   function playPresenceDetected() {
     try {
-      // Vibración sutil en móvil
+      // Vibración sutil inicial en móvil
       if (navigator.vibrate) {
         navigator.vibrate([40, 30, 60]);
       }
@@ -36,22 +37,54 @@ window.AudioEffects = (() => {
       if (!ctx) return;
 
       const now = ctx.currentTime;
+
+      // 1. Resonancia armónica de fondo que asciende durante los 3 segundos
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(65, now);
-      osc.frequency.exponentialRampToValueAtTime(190, now + 0.45);
+      osc.frequency.setValueAtTime(60, now);
+      osc.frequency.exponentialRampToValueAtTime(170, now + 2.7);
 
       gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.22, now + 0.2);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      gain.gain.linearRampToValueAtTime(0.16, now + 1.2);
+      gain.gain.linearRampToValueAtTime(0.22, now + 2.6);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.95);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
-
       osc.start(now);
-      osc.stop(now + 0.52);
+      osc.stop(now + 3.0);
+
+      // 2. Corriente de aire sutil generada con ruido filtrado (viento interactivo)
+      const bufferSize = Math.floor(ctx.sampleRate * 2.8);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.5;
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(200, now);
+      filter.frequency.linearRampToValueAtTime(560, now + 2.7);
+      filter.Q.value = 2.0;
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.001, now);
+      noiseGain.gain.linearRampToValueAtTime(0.12, now + 1.5);
+      noiseGain.gain.linearRampToValueAtTime(0.20, now + 2.6);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.95);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      noise.start(now);
+      noise.stop(now + 3.0);
     } catch (_) {}
   }
 

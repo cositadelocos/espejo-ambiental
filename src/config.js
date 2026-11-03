@@ -53,9 +53,17 @@ window.CONFIG = {
     decay:     0.65, // reducción por frame
   },
 
+  // ── Interacción de presencia física (agitación del aire) ────────────────
+  presence: {
+    swirlRadius:   320,  // radio de perturbación de aire alrededor de la persona
+    swirlForce:    3.8,  // fuerza de vórtice / remolino
+    pushForce:     2.6,  // fuerza de desplazamiento aerodinámico al pasar
+    speedBoost:    2.4,  // aceleración de las partículas suspendidas
+  },
+
   // ── Temporizadores (ms) ───────────────────────────────────────────────
   timings: {
-    detectionHold:       1200,
+    detectionHold:       3000, // 3 segundos de interacción con las partículas antes de revelar
     disperseDuration:    1400,
     infoDisplayDuration: 13000,
     resetDuration:       2200,

@@ -39,12 +39,13 @@ window.App = {
 const sketch = (p) => {
 
   // Variables de rendimiento y animación
-  let _shakeAmount = 0;
-  let _textTime    = 0;
-  let _showFPS     = CONFIG.debug.showFPS;
-  let _fpsCount    = 0;
-  let _fpsDisplay  = 60;
-  let _fpsTimer    = 0;
+  let _shakeAmount        = 0;
+  let _textTime           = 0;
+  let _showFPS            = CONFIG.debug.showFPS;
+  let _fpsCount           = 0;
+  let _fpsDisplay         = 60;
+  let _fpsTimer           = 0;
+  let _detectionStartTime = 0;
 
   // ── SETUP ──────────────────────────────────────────────────────────────
   p.setup = () => {
@@ -74,6 +75,7 @@ const sketch = (p) => {
     // ── Detector de presencia ──────────────────────────────────────────
     const pd = new PresenceDetector({
       onPresenceChange: _handlePresence,
+      onPositionChange: _handlePositionChange,
       onStatusChange:   _handleCameraStatus,
     });
     App.presenceDetector = pd;
@@ -104,16 +106,25 @@ const sketch = (p) => {
       _shakeAmount = Math.max(0, _shakeAmount - 0.95);
     }
 
+    // Actualizar posición de presencia si el usuario mueve el cursor en modo simulación
+    const sm = App.stateMachine;
+    if (sm?.is('DETECTED')) {
+      const pd = App.presenceDetector;
+      if (!pd?.isReady || pd.simulationMode) {
+        if (p.mouseX >= 0 && p.mouseX <= p.width && p.mouseY >= 0 && p.mouseY <= p.height) {
+          App.particleSystem?.updatePresencePosition(p.mouseX / p.width, p.mouseY / p.height);
+        }
+      }
+    }
+
     // Actualizar y dibujar partículas sobre el reflejo del usuario
     App.particleSystem.update();
     App.particleSystem.draw();
     p.pop();
 
-    // Texto de reposo estilo Apple (solo en IDLE y DETECTED)
-    const sm = App.stateMachine;
+    // Texto de reposo y de escaneo estilo Apple (solo en IDLE y DETECTED)
     if (sm?.isAny('IDLE', 'DETECTED')) {
-      const fade = sm.is('DETECTED') ? 0.25 : 1.0;
-      _drawIdleText(fade);
+      _drawIdleText();
     }
 
     if (_showFPS) _drawFPS();
@@ -134,15 +145,21 @@ const sketch = (p) => {
   // ── Handlers de estado ─────────────────────────────────────────────────
 
   function _onIdle() {
+    App.particleSystem.setPresence(false);
     App.particleSystem.returnToIdle();
     window.Interface?.hide();
     _updateCamStatus();
   }
 
   function _onDetected() {
-    // Feedback sonoro sutil y anticipación de presencia
+    _detectionStartTime = p.millis();
+    const pos = App.presenceDetector?.lastFacePos || { normX: 0.5, normY: 0.45 };
+    App.particleSystem?.setPresence(true, pos.normX, pos.normY);
+
+    // Feedback sonoro atmosférico progresivo durante los 3s
     window.AudioEffects?.playPresenceDetected();
-    // Pausa deliberada para confirmar intención de cercanía
+
+    // Pausa deliberada de 3 segundos interactuando con las partículas antes de revelar
     App.stateMachine.schedule(CONFIG.timings.detectionHold, 'REVEAL');
   }
 
@@ -157,8 +174,11 @@ const sketch = (p) => {
     // Sonido cinemático de explosión de aire y vibración física
     window.AudioEffects?.playShockwaveBurst();
 
-    // Dispersión centrífuga de partículas con ondas de choque visuales
-    App.particleSystem.disperseFrom(p.width / 2, p.height / 2);
+    // Dispersión centrífuga de partículas desde el foco de presencia detectado
+    const pos = App.presenceDetector?.lastFacePos;
+    const cx = pos ? pos.normX * p.width : p.width / 2;
+    const cy = pos ? pos.normY * p.height : p.height / 2;
+    App.particleSystem.disperseFrom(cx, cy);
 
     // Al terminar la dispersión, desplegar la hoja informativa estilo iOS
     App.stateMachine.schedule(CONFIG.timings.disperseDuration, 'INFORMATION');
@@ -178,6 +198,7 @@ const sketch = (p) => {
 
   function _onReset() {
     window.Interface?.hide();
+    App.particleSystem.setPresence(false);
     App.particleSystem.returnToIdle();
     App.stateMachine.schedule(CONFIG.timings.resetDuration, 'IDLE');
   }
@@ -188,11 +209,14 @@ const sketch = (p) => {
 
   // ── Gestión de presencia ────────────────────────────────────────────────
 
-  function _handlePresence(detected) {
+  function _handlePresence(detected, facePos) {
     const sm = App.stateMachine;
     if (!sm) return;
 
     if (detected) {
+      if (facePos) {
+        App.particleSystem?.updatePresencePosition(facePos.normX, facePos.normY);
+      }
       if (sm.is('IDLE')) {
         sm.transition('DETECTED');
       } else if (sm.is('INFORMATION')) {
@@ -204,12 +228,19 @@ const sketch = (p) => {
       }
     } else {
       if (sm.is('DETECTED')) {
+        App.particleSystem?.setPresence(false);
         sm.transition('IDLE');
       } else if (sm.is('INFORMATION')) {
         // La persona se retiró: programar reinicio breve
         sm.clearScheduled();
         sm.schedule(CONFIG.timings.resetHoldDelay, 'RESET');
       }
+    }
+  }
+
+  function _handlePositionChange(facePos) {
+    if (facePos && App.stateMachine?.is('DETECTED')) {
+      App.particleSystem?.updatePresencePosition(facePos.normX, facePos.normY);
     }
   }
 
@@ -247,8 +278,10 @@ const sketch = (p) => {
   // ── Funciones de dibujo ────────────────────────────────────────────────
 
   function _drawIdleText(alpha = 1.0) {
+    const sm = App.stateMachine;
+    const isDetected = sm?.is('DETECTED');
     const cx    = p.width  / 2;
-    const cy    = p.height * 0.78; // Posicionado elegantemente en el tercio inferior
+    const cy    = p.height * 0.80; // Posicionado en el tercio inferior
     const pulse = 0.5 + 0.5 * Math.sin(_textTime * 1.5);
 
     p.push();
@@ -256,29 +289,69 @@ const sketch = (p) => {
     p.textAlign(p.CENTER, p.CENTER);
     p.noStroke();
 
-    // Pastilla de cristal de fondo estilo Dynamic Island / iOS Pill
-    const pillW = Math.min(460, p.width * 0.88);
-    const pillH = 68;
-    const pillA = (35 + pulse * 15) * alpha;
+    // Pastilla de cristal estilo Apple Dynamic Island
+    const pillW = Math.min(520, p.width * 0.92);
+    const pillH = isDetected ? 78 : 68;
+    const pillA = isDetected ? 55 : (35 + pulse * 15) * alpha;
 
     p.fill(12, 14, 20, pillA * 2.2);
-    p.stroke(255, 255, 255, (25 + pulse * 15) * alpha);
-    p.strokeWeight(1);
-    p.rect(cx - pillW / 2, cy - pillH / 2, pillW, pillH, 34);
 
-    // Texto de la pregunta principal
-    p.noStroke();
-    p.fill(255, 255, 255, (210 + pulse * 45) * alpha);
-    p.textSize(17);
-    p.textStyle(p.BOLD);
-    p.textFont('system-ui, -apple-system, sans-serif');
-    p.text('¿Sabes qué aire estás respirando en este momento?', cx, cy - 11);
+    // Borde reactivo
+    if (isDetected) {
+      p.stroke(0, 185, 255, 120 + pulse * 75);
+      p.strokeWeight(1.5);
+    } else {
+      p.stroke(255, 255, 255, (25 + pulse * 15) * alpha);
+      p.strokeWeight(1);
+    }
+    p.rect(cx - pillW / 2, cy - pillH / 2, pillW, pillH, 36);
 
-    // Indicación de acción
-    p.fill(180, 210, 245, (160 + pulse * 40) * alpha);
-    p.textSize(12);
-    p.textStyle(p.NORMAL);
-    p.text('Mírate en el espejo · Acércate para revelar la polución invisible', cx, cy + 13);
+    if (isDetected) {
+      // Cálculo del progreso de los 3 segundos
+      const elapsed = Math.max(0, p.millis() - _detectionStartTime);
+      const totalMs = CONFIG.timings.detectionHold || 3000;
+      const progress = Math.min(1.0, elapsed / totalMs);
+      const remainingSec = Math.max(0, (totalMs - elapsed) / 1000).toFixed(1);
+
+      p.noStroke();
+      p.fill(0, 215, 255, 245);
+      p.textSize(15);
+      p.textStyle(p.BOLD);
+      p.textFont('system-ui, -apple-system, sans-serif');
+      p.text('✦ Presencia detectada · Agitando partículas suspendidas', cx, cy - 14);
+
+      p.fill(220, 235, 255, 210);
+      p.textSize(12);
+      p.textStyle(p.NORMAL);
+      p.text(`Analizando calidad del aire en Puente Aranda… (${remainingSec}s)`, cx, cy + 6);
+
+      // Barra de progreso interactiva
+      const barW = pillW - 60;
+      const barH = 3;
+      const barX = cx - barW / 2;
+      const barY = cy + pillH / 2 - 10;
+
+      p.fill(255, 255, 255, 35);
+      p.rect(barX, barY, barW, barH, 2);
+
+      p.fill(0, 195, 255, 235);
+      p.rect(barX, barY, barW * progress, barH, 2);
+
+    } else {
+      // Modo reposo (IDLE)
+      p.noStroke();
+      p.fill(255, 255, 255, (210 + pulse * 45) * alpha);
+      p.textSize(17);
+      p.textStyle(p.BOLD);
+      p.textFont('system-ui, -apple-system, sans-serif');
+      p.text('¿Sabes qué aire estás respirando en este momento?', cx, cy - 11);
+
+      // Indicación de acción
+      p.fill(180, 210, 245, (160 + pulse * 40) * alpha);
+      p.textSize(12);
+      p.textStyle(p.NORMAL);
+      p.text('Mírate en el espejo · Acércate para interactuar con la polución', cx, cy + 13);
+    }
 
     p.pop();
   }
