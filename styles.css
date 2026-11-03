@@ -1,0 +1,746 @@
+/**
+ * styles.css — Espejo Ambiental Interactivo (Puente Aranda, Bogotá)
+ * Formato Kiosco Vertical / Tótem SITP & Dispositivos Móviles (100% No-Scroll):
+ * - Liquid Glassmorphism Apple iOS (blur 48px, saturate 190%)
+ * - Dynamic Island & Modal Sheets estilo iOS compactos
+ * - Vibración de llegada & Ondas de Choque cinemáticas
+ * - Widget Apple Maps Dark Mode integrado con GPS
+ */
+
+/* ── Variables de Diseño Apple iOS ─────────────────────────────────────── */
+:root {
+  --bg-deep:        #000000;
+  --bg-scrim:       rgba(6, 8, 14, 0.68);
+  
+  /* Materiales iOS */
+  --ios-ultra-thin: rgba(26, 28, 36, 0.72);
+  --ios-thin:       rgba(32, 34, 44, 0.85);
+  --ios-border:     rgba(255, 255, 255, 0.15);
+  --ios-border-sub: rgba(255, 255, 255, 0.09);
+
+  /* Texto Apple */
+  --ios-label:      #ffffff;
+  --ios-secondary:  rgba(235, 235, 245, 0.82);
+  --ios-tertiary:   rgba(235, 235, 245, 0.54);
+
+  /* Colores de Sistema iOS */
+  --ios-blue:       #0A84FF;
+  --ios-green:      #30D158;
+  --ios-yellow:     #FFD60A;
+  --ios-orange:     #FF9F0A;
+  --ios-red:        #FF453A;
+  --ios-purple:     #BF5AF2;
+
+  /* Tipografía SF Pro */
+  --font-apple:     -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono:      ui-monospace, "SF Mono", "Space Mono", Menlo, Consolas, monospace;
+
+  /* Radios de curvatura iOS */
+  --radius-island:  40px;
+  --radius-sheet:   28px;
+  --radius-card:    18px;
+  --radius-pill:    999px;
+
+  /* Capas z-index */
+  --z-mirror:       0;
+  --z-canvas:       10;
+  --z-ui:           100;
+  --z-debug:        200;
+  --z-loader:       300;
+}
+
+/* ── Reset Global (No Scrollbar Garantizado) ────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden !important; /* Cero barras de deslizamiento */
+  background: var(--bg-deep);
+  color: var(--ios-label);
+  font-family: var(--font-apple);
+  user-select: none;
+}
+
+/* ── Animación de Vibración Cinemática de Llegada (Screen Shake) ────────── */
+body.vibrating-shockwave {
+  animation: shockwave-jitter 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shockwave-jitter {
+  10%, 90% { transform: translate3d(-3px, 1px, 0) scale(1.01); filter: contrast(1.15); }
+  20%, 80% { transform: translate3d(4px, -2px, 0) scale(1.02); filter: contrast(1.25) hue-rotate(5deg); }
+  30%, 50%, 70% { transform: translate3d(-5px, 3px, 0) scale(1.03); filter: contrast(1.3) brightness(1.1); }
+  40%, 60% { transform: translate3d(5px, -3px, 0) scale(1.01); filter: contrast(1.15); }
+  100% { transform: translate3d(0, 0, 0) scale(1); filter: contrast(1); }
+}
+
+/* ── Espejo Ambiental: Cámara de fondo en vivo ─────────────────────────── */
+#camera-mirror-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-mirror);
+  background: #080a12;
+  overflow: hidden;
+}
+
+#camera-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Reflejo natural en espejo */
+  filter: brightness(0.74) contrast(1.12) saturate(0.92);
+  opacity: 0;
+  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#camera-feed.active {
+  opacity: 1;
+}
+
+body.state-information #camera-feed {
+  filter: blur(34px) brightness(0.3) saturate(0.65);
+  transform: scaleX(-1) scale(1.08);
+}
+
+.mirror-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(8, 10, 16, 0.12) 0%, rgba(4, 5, 8, 0.8) 100%);
+  pointer-events: none;
+  transition: background 0.8s ease;
+}
+
+body.state-information .mirror-scrim {
+  background: rgba(4, 6, 12, 0.75);
+}
+
+/* ── Canvas de partículas (flotando sobre la persona) ───────────────────── */
+#canvas-container {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-canvas);
+  pointer-events: none;
+}
+
+#canvas-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Loader ─────────────────────────────────────────────────────────────── */
+#loader {
+  position: fixed;
+  inset: 0;
+  background: #06080e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-loader);
+  transition: opacity 0.6s ease;
+}
+
+#loader.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader-ring {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--ios-blue);
+  border-radius: 50%;
+  animation: ios-spin 0.9s linear infinite;
+}
+
+@keyframes ios-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── UI Overlay (Contenedor Kiosk Vertical Sin Scroll) ─────────────────── */
+#ui-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-ui);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2vh, 20px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+#ui-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Estructura para Tótem Vertical (9:16) y Pantalla Móvil */
+.ios-vertical-kiosk {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.5vh, 14px);
+  width: 100%;
+  max-width: 520px; /* Ancho óptimo para tótem vertical o celular */
+  height: 100%;
+  max-height: calc(100vh - clamp(16px, 3vh, 32px));
+  overflow: hidden; /* Cero scroll */
+  animation: ios-sheet-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ios-sheet-enter {
+  0%   { opacity: 0; transform: scale(0.92) translateY(32px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Dynamic Island Pill (Top) ─────────────────────────────────────────── */
+.ios-island {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-island);
+  padding: 6px 16px;
+  width: auto;
+  min-width: 300px;
+  max-width: 94%;
+  height: 38px;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+}
+
+.island-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.island-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ios-green);
+  box-shadow: 0 0 8px var(--ios-green);
+  animation: island-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes island-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50%      { opacity: 1;   transform: scale(1.2); }
+}
+
+.island-station {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ios-label);
+}
+
+.island-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.island-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  background: rgba(48, 209, 88, 0.18);
+  color: var(--ios-green);
+  border: 1px solid rgba(48, 209, 88, 0.35);
+  border-radius: var(--radius-pill);
+}
+
+.island-time {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ios-secondary);
+}
+
+/* ── Hoja Vertical (Ajuste Perfecto en 100vh) ──────────────────────────── */
+.ios-sheet-vertical {
+  background: var(--ios-ultra-thin);
+  backdrop-filter: blur(50px) saturate(190%) contrast(100%);
+  -webkit-backdrop-filter: blur(50px) saturate(190%) contrast(100%);
+  border: 1px solid var(--ios-border);
+  border-radius: var(--radius-sheet);
+  padding: clamp(14px, 2vh, 20px);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(8px, 1.4vh, 14px);
+  overflow: hidden; /* CERO SCROLLBAR */
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+}
+
+/* ── 1. Hero Widget AQI Compacto (Apple Weather) ───────────────────────── */
+.ios-hero-compact {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ios-border-sub);
+  border-radius: var(--radius-card);
+  padding: clamp(10px, 1.5vh, 16px) clamp(12px, 2vw, 18px);
+  flex-shrink: 0;
+}
+
+.hero-header-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.hero-left-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ios-tertiary);
+}
+
+.hero-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+.hero-pollutant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.pollutant-sym {
+  font-weight: 700;
+  color: var(--aqi-color, var(--ios-blue));
+}
+.pollutant-num {
+  font-weight: 500;
+  color: var(--ios-secondary);
+}
+
+.hero-metric-row-compact {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+
+.hero-aqi-value-compact {
+  font-size: clamp(48px, 7vh, 64px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: var(--aqi-color, #ffffff);
+  text-shadow: 0 0 35px var(--aqi-glow, rgba(255, 255, 255, 0.2));
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-context-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hero-unit-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ios-secondary);
+}
+
+.hero-who-sub {
+  font-size: 11px;
+  color: var(--ios-tertiary);
+  line-height: 1.3;
+}
+
+/* Barra de espectro continuo de color */
+.ios-aqi-slider-compact {
+  margin-top: 6px;
+}
+
+.ios-aqi-slider-track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    #30D158 0%,
+    #FFD60A 25%,
+    #FF9F0A 48%,
+    #FF453A 70%,
+    #BF5AF2 100%
+  );
+}
+
+.ios-aqi-slider-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  transition: left 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ios-aqi-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--ios-tertiary);
+  margin-top: 4px;
+}
+
+/* ── 2. Sección Dividida (Mapa Apple Maps Dark & Salud) ────────────────── */
+.ios-split-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(8px, 1.2vh, 12px);
+  flex: 1;
+  min-height: 0; /* Previene desbordamiento en flexbox */
+}
+
+@media (min-height: 680px) {
+  .ios-split-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.ios-card-widget {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--ios-border-sub);
+  border-radius: var(--radius-card);
+  padding: clamp(8px, 1.2vh, 12px) clamp(10px, 1.5vw, 14px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.widget-mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.mini-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.widget-mini-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ios-label);
+}
+
+/* ── Mapa Apple Maps Dark Mode ─────────────────────────────────────────── */
+.map-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ios-blue);
+  box-shadow: 0 0 8px var(--ios-blue);
+  animation: island-pulse 1.5s infinite;
+}
+
+.map-dist-pill {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ios-tertiary);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+}
+
+.ios-map-view {
+  width: 100%;
+  height: clamp(80px, 14vh, 130px);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f111a;
+}
+
+/* Marcador de usuario de Apple Maps (Find My style) */
+.apple-map-pin {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.apple-pin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0A84FF;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+
+.apple-pin-pulse {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(10, 132, 255, 0.35);
+  animation: apple-pulse-anim 1.8s ease-out infinite;
+  z-index: 1;
+}
+
+@keyframes apple-pulse-anim {
+  0%   { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.apple-station-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(18, 20, 28, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.apple-station-badge .st-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+/* Diagnóstico y Salud Textos */
+.health-lead {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ios-label);
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+
+.health-body {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ios-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── 3. Acciones Recomendadas en Paradero SITP ──────────────────────────── */
+.ios-actions-card {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-width: 1.2px;
+}
+
+.action-items-compact {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.action-items-compact li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ios-secondary);
+}
+
+.action-bullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+/* ── 4. Footer Compacto ────────────────────────────────────────────────── */
+.ios-kiosk-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--ios-border-sub);
+}
+
+.kiosk-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-rmcab-tag {
+  font-size: 10px;
+  color: var(--ios-tertiary);
+}
+
+.ios-btn-dismiss-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--ios-label);
+  font-family: var(--font-apple);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.ios-btn-dismiss-compact:active {
+  transform: scale(0.96);
+}
+
+/* Barra de progreso de tiempo */
+.ios-timer-bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ios-timer-progress {
+  width: 0%;
+  height: 100%;
+  background: var(--ios-blue);
+  transition: width 0.05s linear;
+}
+
+/* ── Indicador de Cámara Discreto ──────────────────────────────────────── */
+#camera-status {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  z-index: var(--z-ui);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 17, 23, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--ios-border-sub);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  color: var(--ios-secondary);
+  pointer-events: none;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.active {
+  background: var(--ios-green);
+  box-shadow: 0 0 6px var(--ios-green);
+}
+.status-dot.inactive { background: #505565; }
+.status-dot.error { background: var(--ios-red); }
+
+/* ── Panel de Depuración ───────────────────────────────────────────────── */
+#debug-panel {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: var(--z-debug);
+  width: 280px;
+  background: rgba(20, 22, 28, 0.94);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  padding: 14px;
+  font-family: var(--font-apple);
+  font-size: 11px;
+  color: var(--ios-label);
+  display: none;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+#debug-panel.visible { display: block; }
+.dbg-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--ios-border-sub);
+}
+.dbg-title { font-size: 10px; font-weight: 700; color: var(--ios-blue); text-transform: uppercase; }
+.dbg-close { background: none; border: none; color: var(--ios-tertiary); cursor: pointer; font-size: 13px; }
+.dbg-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin-bottom: 10px; }
+.dbg-label { color: var(--ios-tertiary); font-size: 10px; }
+.dbg-value { color: var(--ios-label); font-size: 10px; text-align: right; }
+.dbg-value.accent { color: var(--ios-blue); font-weight: 700; }
+.dbg-divider { height: 1px; background: var(--ios-border-sub); margin: 8px 0; }
+.dbg-actions { display: flex; flex-direction: column; gap: 5px; }
+.dbg-btn {
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px; color: var(--ios-label); font-family: var(--font-apple);
+  font-size: 10px; padding: 6px 10px; cursor: pointer; text-align: left;
+}
+.dbg-btn:hover { background: rgba(255, 255, 255, 0.15); }
+.dbg-btn.primary { color: var(--ios-blue); }
+.dbg-btn.warn { color: var(--ios-red); }
+.dbg-slider { width: 100%; margin-top: 4px; accent-color: var(--ios-blue); cursor: pointer; }
+.dbg-hints { font-size: 9px; color: var(--ios-tertiary); line-height: 1.6; }
+.dbg-hints kbd { background: rgba(255, 255, 255, 0.12); border-radius: 3px; padding: 1px 4px; color: var(--ios-label); }

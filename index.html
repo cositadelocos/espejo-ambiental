@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description"
+        content="Espejo Ambiental Interactivo — Visualización de calidad del aire en Puente Aranda, Bogotá. Instalación para tótem vertical y móviles con estética Apple iOS." />
+  <meta name="theme-color" content="#000000" />
+  <title>Espejo Ambiental · Puente Aranda, Bogotá</title>
+
+  <!-- ── Leaflet CSS (para mapa estilo Apple Maps Dark) ────────────────── -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+        crossorigin="anonymous" />
+
+  <!-- ── Estilos del Sistema ──────────────────────────────────────────── -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── Loader Inicial ────────────────────────────────────────────────── -->
+  <div id="loader" aria-hidden="true">
+    <div class="loader-ring"></div>
+  </div>
+
+  <!-- ── Espejo Ambiental: Video de cámara en vivo de fondo ─────────────── -->
+  <div id="camera-mirror-wrap" aria-hidden="true">
+    <video id="camera-feed" playsinline muted autoplay></video>
+    <div class="mirror-scrim"></div>
+  </div>
+
+  <!-- ── Canvas de partículas (flotando sobre la persona) ───────────────── -->
+  <div id="canvas-container"
+       role="img"
+       aria-label="Visualización de partículas que representan la polución atmosférica suspendida"></div>
+
+  <!-- ── Panel informativo vertical estilo Apple iOS (sin scrollbar) ───── -->
+  <div id="ui-overlay" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ── Panel de depuración ───────────────────────────────────────────── -->
+  <div id="debug-panel"
+       role="complementary"
+       aria-label="Panel de depuración"></div>
+
+  <!-- ── Indicador de estado de cámara ─────────────────────────────────── -->
+  <div id="camera-status" role="status" aria-live="polite">
+    <div class="status-dot inactive" id="cam-dot"></div>
+    <span id="cam-label">Iniciando espejo…</span>
+  </div>
+
+  <!-- ── Librerías Externas ────────────────────────────────────────────── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+          crossorigin="anonymous"></script>
+
+  <!-- ── Módulos del proyecto (orden estricto de dependencias) ───────────
+       config → stateMachine → audioEffects → locationMap → environmentalData
+       → recommendations → interface → particles → presenceDetection → debugPanel → main
+  ──────────────────────────────────────────────────────────────────────── -->
+  <script src="src/config.js"></script>
+  <script src="src/stateMachine.js"></script>
+  <script src="src/audioEffects.js"></script>
+  <script src="src/locationMap.js"></script>
+  <script src="src/environmentalData.js"></script>
+  <script src="src/recommendations.js"></script>
+  <script src="src/interface.js"></script>
+  <script src="src/particles.js"></script>
+  <script src="src/presenceDetection.js"></script>
+  <script src="src/debugPanel.js"></script>
+  <script src="src/main.js"></script>
+
+</body>
+</html>
