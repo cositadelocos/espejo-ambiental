@@ -282,7 +282,12 @@ window.Interface = (() => {
       window.LocationMap.init('ios-map-container', record.color || '#FFCC35');
     }
 
-    _startTimerProgress(durationMs, onDismiss);
+    // Esperar al siguiente frame para que el DOM esté completamente renderizado
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        _startTimerProgress(durationMs, onDismiss);
+      });
+    });
   }
 
   function _startTimerProgress(durationMs, onFinish) {
